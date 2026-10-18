@@ -1,0 +1,17 @@
+# Dependencies / tooling
+node_modules/
+
+# Never commit Claude's own (copyrighted) app files or build outputs
+*.asar
+*.exe
+*.fa-orig
+
+# Local code-index caches (graft), editor and OS files
+/graft/
+.ignore
+.claude/
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store
