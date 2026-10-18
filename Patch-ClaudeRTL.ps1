@@ -89,8 +89,16 @@ Say "Claude $($pkg.Version) at $App"
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) { Fail 'Node.js is required (https://nodejs.org).' }
 if (-not $DryRun -and -not (Test-Admin)) { Fail 'Run this from an elevated (Administrator) PowerShell.' }
 if (-not $Restore -and -not (Test-FontInstalled $Font)) {
-    Say "Font '$Font' does not look installed in Windows; Claude will fall back to its default font." 'Yellow'
+    Say "Font '$Font' is not installed in Windows; without it Claude's UI will look broken." 'Yellow'
     Say 'Vazirmatn: https://github.com/rastikerdar/vazirmatn/releases (install the static .ttf files).' 'Yellow'
+    # Ask for another installed font; Enter (or no console) keeps the missing one.
+    while ($true) {
+        try { $answer = (Read-Host "Name of a font that IS installed (Enter to keep '$Font')").Trim() } catch { break }
+        if (-not $answer) { Say "Keeping '$Font'; Claude will fall back to its default font." 'Yellow'; break }
+        if ($answer -notmatch '^[A-Za-z0-9 -]{1,64}$') { Say 'Use letters, digits, spaces and hyphens only.' 'Red'; continue }
+        if (Test-FontInstalled $answer) { $Font = $answer; Say "Using font '$Font'." 'Green'; break }
+        Say "'$answer' is not installed either." 'Red'
+    }
 }
 
 function Stop-Claude {
