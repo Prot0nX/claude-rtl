@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Settings card in the Claude Code session rail (`Ctrl+Alt+Shift+S` elsewhere): RTL on/off, line height, Persian text size, lists and tables, full-layout mirroring, font on/off and name, and Persian letters inside code. Applied live and saved in `localStorage`.
+- Persian letters in code blocks now use the chosen font instead of a system fallback (can be turned off).
+- The Persian line height now also covers `dt`, `dd`, table cells and blockquotes.
 - Clearer console output: numbered steps, aligned `[ OK ]` / `[ !! ]` / `[FAIL]` markers, shortened hashes and a summary at the end. Behavior is unchanged.
 
 ## 1.0.0 - 2026-10-18
