@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- The settings card finds the session rail in more layouts (cards built as list items, deeper nesting), and the `Ctrl+Alt+Shift+D` report now says whether the rail was found and why not.
 - Settings card in the Claude Code session rail (`Ctrl+Alt+Shift+S` elsewhere): RTL on/off, line height, Persian text size, lists and tables, full-layout mirroring, font on/off and name, and Persian letters inside code. Applied live and saved in `localStorage`.
 - Persian letters in code blocks now use the chosen font instead of a system fallback (can be turned off).
 - The Persian line height now also covers `dt`, `dd`, table cells and blockquotes.

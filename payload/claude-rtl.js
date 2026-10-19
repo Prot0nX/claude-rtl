@@ -576,28 +576,36 @@
         [railPanel, floatPanel].forEach(function (p) { if (p && p.isConnected) p.crtlSync(); });
     }
 
-    // The rail: the deepest element holding the most distinct section titles (2+).
-    // Titles inside chat text, code or the editor do not count.
-    function findRail() {
+    // Text elements that read exactly like a rail section title. Titles inside
+    // paragraphs, code or the editor do not count. (Rail cards may be list items,
+    // so li is not excluded; needing 3 titles in one narrow box keeps chat out.)
+    function railTitleHits() {
         var hits = [], w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
         for (var t = w.nextNode(); t && hits.length < 40; t = w.nextNode()) {
             var v = t.nodeValue;
-            if (v.length > 14 || RAIL_TITLES.indexOf(v.trim()) < 0) continue;
+            if (v.length > 24) continue;
+            v = v.trim();
+            if (RAIL_TITLES.indexOf(v) < 0) continue;
             var p = t.parentElement;
-            if (!p || p.closest('p,li,td,th,blockquote,pre,code,[data-crtl],' + EDITOR)) continue;
-            hits.push({ el: p, title: v.trim() });
+            if (!p || p.closest('p,pre,code,[data-crtl],' + EDITOR)) continue;
+            hits.push({ el: p, title: v });
         }
-        var seen = new Map(), best = null;
+        return hits;
+    }
+
+    // The rail: the deepest element holding the most distinct section titles (3+).
+    function findRail() {
+        var hits = railTitleHits(), seen = new Map(), best = null;
         hits.forEach(function (h) {
             var a = h.el.parentElement;
-            for (var depth = 1; a && a !== document.body && depth <= 10; depth++, a = a.parentElement) {
+            for (var depth = 1; a && a !== document.body && depth <= 16; depth++, a = a.parentElement) {
                 var e = seen.get(a);
                 if (!e) seen.set(a, e = { el: a, titles: {}, count: 0, depth: depth });
                 if (!e.titles[h.title]) { e.titles[h.title] = 1; e.count++; }
             }
         });
         seen.forEach(function (e) {
-            if (e.count < 2) return;
+            if (e.count < 3) return;
             if (!best || e.count > best.count || (e.count === best.count && e.depth < best.depth)) best = e;
         });
         if (!best || best.el.getBoundingClientRect().width > 720) return null;
@@ -687,12 +695,33 @@
         };
     }
 
+    // Why the settings card is (not) in the rail: each title found, with its ancestors.
+    function railReport() {
+        var found = findRail();
+        return {
+            mounted: !!(railPanel && railPanel.isConnected),
+            found: found ? sig(found.rail) + ' w=' + Math.round(found.rail.getBoundingClientRect().width) : null,
+            titles: railTitleHits().map(function (h) {
+                var chain = [];
+                for (var a = h.el, i = 0; a && a !== document.body && i < 16; a = a.parentElement, i++) {
+                    chain.push(a.tagName + (a.getAttribute('role') ? '[' + a.getAttribute('role') + ']' : '') +
+                        ' w=' + Math.round(a.getBoundingClientRect().width));
+                }
+                return h.title + ': ' + chain.join(' < ');
+            })
+        };
+    }
+
     function dump() {
         var els = Array.prototype.slice.call(document.querySelectorAll('[data-fa-dir], [dir="rtl"]'))
             .filter(function (e) { return !e.closest(BLOCKS) && e.matches(UI_LEAVES); }).slice(0, 12);
+        var rail = railReport();
         var report = JSON.stringify({ ua: navigator.userAgent, url: location.href,
-            items: els.map(describe) }, null, 1);
-        function done() { toast('claude-rtl: report copied (' + els.length + ' items)'); }
+            settings: S, rail: rail, items: els.map(describe) }, null, 1);
+        function done() {
+            toast('claude-rtl: report copied (' + els.length + ' items, rail ' +
+                (rail.mounted ? 'card shown' : rail.found ? 'found' : 'not found, ' + rail.titles.length + ' titles') + ')');
+        }
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(report).then(done, function () { fallbackCopy(report); done(); });
         } else { fallbackCopy(report); done(); }
