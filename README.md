@@ -16,6 +16,7 @@ Out of the box, Claude's desktop app shows Persian mixed with English poorly: li
 - **Lists and tables.** Persian lists have their bullets on the right; Persian tables put their first column on the right.
 - **Sidebar.** Persian session titles are right-aligned, and the row icons and `⋯` menu stay where they are.
 - **Code and math stay LTR**, always.
+- **Settings panel.** A *RTL & font* card in the Claude Code session rail (under Environment, Context, Connectors, Changes) changes things live: RTL on/off, line height, Persian text size, lists and tables, full-layout mirroring, the font and its name, and Persian letters inside code. Press **`Ctrl+Alt+Shift+S`** to open it anywhere else.
 - **Re-runnable.** After every Claude update, run it again. Running it twice never stacks changes.
 - **Reversible.** One command (or `uninstall.cmd`) restores the original files.
 
@@ -66,6 +67,23 @@ powershell -ExecutionPolicy Bypass -File .\Patch-ClaudeRTL.ps1 -Restore
 ```
 
 A Claude update also removes the patch, because it installs a fresh copy.
+
+## Settings
+
+The settings card appears at the bottom of the session rail in Claude Code. If it is not there (another page, or Claude changed the rail), press **`Ctrl+Alt+Shift+S`** for a floating copy; `Esc` closes it.
+
+| Setting | Default | What it does |
+|---|---|---|
+| RTL | on | Per-paragraph direction, lists, tables and sidebar titles. Off gives Claude's own layout back; the font setting is separate. |
+| Line height | 1.9 | Line height of Persian paragraphs, list items and table cells. |
+| Persian text size | 100% | Size of Persian blocks in answers, relative to the surrounding text. |
+| Lists and tables RTL | on | Bullets on the right and first column on the right for Persian lists and tables. |
+| Mirror whole page | `-Mode` | Experimental full-layout mirroring (`-Mode full`). |
+| Custom font | on | The font everywhere except code, math and icons. |
+| Font name | `-Font` | Any installed font (letters, digits, spaces, hyphens). Applied as you type. |
+| Persian inside code | on | Persian letters in code blocks use the font above instead of a system fallback. |
+
+Choices are saved in the app (`localStorage`) and survive restarts and re-patching. Only changed values are saved, so `-Font` and `-Mode` still set the defaults. **Reset** returns to them.
 
 ## How it works
 
