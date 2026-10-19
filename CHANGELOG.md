@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Clearer console output: numbered steps, aligned `[ OK ]` / `[ !! ]` / `[FAIL]` markers, shortened hashes and a summary at the end. Behavior is unchanged.
+
 ## 1.0.0 - 2026-10-18
 
 First public release.
