@@ -72,6 +72,8 @@ A Claude update also removes the patch, because it installs a fresh copy.
 
 The settings card appears at the bottom of the session rail in Claude Code. If it is not there (another page, or Claude changed the rail), press **`Ctrl+Alt+Shift+S`** for a floating copy; `Esc` closes it.
 
+<p align="center"><img src="docs/settings-panel.png" width="285" alt="The RTL & font settings card in the Claude Code session rail"></p>
+
 | Setting | Default | What it does |
 |---|---|---|
 | RTL | on | Per-paragraph direction, lists, tables and sidebar titles. Off gives Claude's own layout back; the font setting is separate. |
@@ -111,6 +113,7 @@ What this means for you:
 | `claude.exe does not contain the expected asar hash` | This Claude build stores integrity differently. Nothing was changed. Please [open an issue](../../issues) with your Claude version. |
 | `Claude did not close` | Quit Claude from the system tray, then run again. |
 | Claude doesn't start after patching | Run `uninstall.cmd`, then [open an issue](../../issues). |
+| The settings card is missing from the session rail | Press **`Ctrl+Alt+Shift+S`** for the floating panel. The `Ctrl+Alt+Shift+D` report (below) says whether the rail was found; attach it to an issue. |
 | Something looks wrong in the UI | Press **`Ctrl+Alt+Shift+D`** in Claude. It copies a JSON report of the Persian UI elements (structure, styles, which `dir` came from Claude vs. this patch) to the clipboard. Attach it to an issue with a screenshot. *The report contains the text of those elements, e.g. session titles; review it before posting.* |
 
 ## Development
@@ -131,6 +134,8 @@ tools/asar-inject.js    rewrites app.asar with the payload
 tools/exe-hash.js       updates the asar hash inside claude.exe
 tools/asar-util.js      small helpers for the script
 test/                   npm test
+docs/                   README images
+.github/workflows/      release automation
 ```
 
 Keep `.ps1`, `.cmd` and payload sources **pure ASCII** (write non-ASCII characters as `\u` escapes). Windows PowerShell 5.1 misreads non-ASCII files without a BOM. A test checks this.

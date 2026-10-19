@@ -1,0 +1,60 @@
+# Publishes a GitHub release when main carries a package.json version that has
+# no release yet. Notes come from that version's CHANGELOG.md section.
+# To release: bump "version" in package.json, add "## <version> - <date>" to
+# CHANGELOG.md, and merge to main.
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm test
+
+      - name: Create the release if this version has none
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(node -p "require('./package.json').version")
+          tag="v$version"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "$tag is already released"
+            exit 0
+          fi
+          # The CHANGELOG section: from "## <version>" up to the next "## ".
+          awk -v v="$version" '
+            /^## / { if (found) exit; if (index($0, "## " v " ") == 1 || $0 == "## " v) { found = 1; next } }
+            found { print }
+          ' CHANGELOG.md > notes.md
+          if ! grep -q '[^[:space:]]' notes.md; then
+            echo "CHANGELOG.md has no section for $version" >&2
+            exit 1
+          fi
+          cat >> notes.md <<'NOTES'
+
+          ## Install or update
+
+          1. Install [Node.js](https://nodejs.org) 18+ and the [Vazirmatn](https://github.com/rastikerdar/vazirmatn/releases) font.
+          2. Download **Source code (zip)** below and extract it.
+          3. Double-click `install.cmd`. Run it again after every Claude update.
+
+          Requires the Claude desktop app from the Microsoft Store / MSIX installer on Windows 10/11.
+
+          > Unofficial; not affiliated with Anthropic. It modifies the installed app's files. Use `uninstall.cmd` to undo it at any time.
+
+          Full guide: [English](https://github.com/${{ github.repository }}/blob/main/README.md) · [فارسی](https://github.com/${{ github.repository }}/blob/main/README.fa.md)
+          NOTES
+          gh release create "$tag" --target "$GITHUB_SHA" --title "$tag" --notes-file notes.md

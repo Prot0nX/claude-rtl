@@ -84,6 +84,8 @@ powershell -ExecutionPolicy Bypass -File .\Patch-ClaudeRTL.ps1 -Restore
 
 کارت تنظیمات پایین پنل کناری سشن در Claude Code ظاهر می‌شود. اگر آنجا نبود (صفحه‌ی دیگری باز است، یا Claude ساختار پنل را عوض کرده)، با **`Ctrl+Alt+Shift+S`** یک نسخه‌ی شناور باز می‌شود؛ `Esc` آن را می‌بندد.
 
+<p align="center"><img src="docs/settings-panel.png" width="285" alt="کارت تنظیمات راست‌چین و فونت در پنل کناری Claude Code"></p>
+
 | تنظیم | پیش‌فرض | کارش |
 |---|---|---|
 | راست‌چین (RTL) | روشن | جهت هر پاراگراف، فهرست، جدول و عنوان‌های سایدبار. خاموشش کنید تا چیدمان خود Claude برگردد؛ فونت جداگانه تنظیم می‌شود. |
@@ -126,6 +128,7 @@ powershell -ExecutionPolicy Bypass -File .\Patch-ClaudeRTL.ps1 -Restore
 | `claude.exe does not contain the expected asar hash` | این نسخه از Claude یکپارچگی را به روش دیگری ذخیره می‌کند. هیچ تغییری انجام نشده است. لطفاً با ذکر نسخه‌ی Claude یک [issue](../../issues) باز کنید. |
 | `Claude did not close` | Claude را از system tray ببندید و دوباره اجرا کنید. |
 | Claude بعد از patch باز نمی‌شود | `uninstall.cmd` را اجرا کنید و یک [issue](../../issues) باز کنید. |
+| کارت تنظیمات در پنل کناری نیست | با **`Ctrl+Alt+Shift+S`** پنل شناور را باز کنید. گزارش `Ctrl+Alt+Shift+D` (ردیف بعد) می‌گوید پنل کناری پیدا شده یا نه؛ آن را به issue پیوست کنید. |
 | چیزی در رابط کاربری درست نیست | داخل Claude کلیدهای **`Ctrl+Alt+Shift+D`** را بزنید. یک گزارش JSON از عناصر فارسی رابط (ساختار، استایل‌ها، و اینکه هر `dir` را Claude گذاشته یا این patch) در کلیپ‌بورد کپی می‌شود. آن را همراه یک اسکرین‌شات به issue پیوست کنید. *این گزارش متن همان عناصر را دارد، مثلاً عنوان سشن‌ها؛ قبل از ارسال آن را بازبینی کنید.* |
 
 ## توسعه
@@ -152,6 +155,8 @@ tools/asar-inject.js    rewrites app.asar with the payload
 tools/exe-hash.js       updates the asar hash inside claude.exe
 tools/asar-util.js      small helpers for the script
 test/                   npm test
+docs/                   README images
+.github/workflows/      release automation
 ```
 
 <div dir="rtl">
