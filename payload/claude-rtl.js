@@ -173,7 +173,7 @@
         '[data-crtl] .crtl-sw::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#fff;transition:left .15s}',
         '[data-crtl] .crtl-sw:checked{background:#2c84db}',
         '[data-crtl] .crtl-sw:checked::after{left:14px}',
-        '[data-crtl] .crtl-range{width:96px;margin:0;accent-color:#2c84db;cursor:pointer}',
+        '[data-crtl] .crtl-range{width:80px;margin:0;accent-color:#2c84db;cursor:pointer}',
         '[data-crtl] .crtl-val{min-width:2.8em;opacity:.65;text-align:right;font-variant-numeric:tabular-nums}',
         '[data-crtl] .crtl-text,[data-crtl] .crtl-btn{background:transparent;color:inherit;font:inherit;border:1px solid rgba(127,127,127,.4);border-radius:6px}',
         '[data-crtl] .crtl-text{width:120px;padding:2px 6px;direction:ltr;text-align:left;unicode-bidi:normal}',
@@ -617,6 +617,16 @@
         return null;
     }
 
+    // The first element in el (or el itself) that is actually drawn as a box.
+    function visibleBox(el) {
+        var all = [el].concat(Array.prototype.slice.call(el.querySelectorAll('*'), 0, 30));
+        for (var i = 0; i < all.length; i++) {
+            var d = getComputedStyle(all[i]).display;
+            if (d !== 'none' && d !== 'contents' && all[i].getBoundingClientRect().height > 0) return all[i];
+        }
+        return null;
+    }
+
     function mountRailPanel() {
         if (railPanel && railPanel.isConnected) return;
         var wait = 1500 - (Date.now() - lastScan);
@@ -629,14 +639,24 @@
         var found = findRail();
         if (!found) return;
         railPanel = railPanel || buildPanel(false);
-        var cls = typeof found.card.className === 'string' ? found.card.className : '';
+        // The visible card: claude.ai wraps each one in a display:contents (or
+        // conditionally hidden) div, and draws the card on the section inside.
+        var look = found.card.matches('[data-rail-section]') ? found.card :
+            found.card.querySelector('[data-rail-section]') || visibleBox(found.card) || found.card;
+        // Never copy classes that hide or flatten the box.
+        var cls = (typeof look.className === 'string' ? look.className : '').split(/\s+/).filter(function (c) {
+            return c && !/^(hidden|contents|invisible|sr-only|collapse)$/.test(c);
+        }).join(' ');
         railPanel.className = (cls + ' crtl-card').trim();
         railPanel.style.cssText = '';
         found.rail.appendChild(railPanel);
-        // Cards whose padding / border live on an inner wrapper: give ours its own.
-        var cs = getComputedStyle(found.card);
-        if (parseFloat(cs.paddingTop) < 4) railPanel.style.padding = '12px';
-        if (cs.borderTopStyle === 'none') {
+        // Still invisible (a conditional class we cannot know): drop the copied look.
+        if (getComputedStyle(railPanel).display === 'none') railPanel.className = 'crtl-card';
+        // Cards whose padding / border live elsewhere: give ours its own.
+        var cs = getComputedStyle(railPanel);
+        if (parseFloat(cs.paddingTop) < 4) { railPanel.style.paddingTop = '12px'; railPanel.style.paddingBottom = '12px'; }
+        if (parseFloat(cs.paddingLeft) < 4) { railPanel.style.paddingLeft = '12px'; railPanel.style.paddingRight = '12px'; }
+        if (cs.borderTopStyle === 'none' && cs.boxShadow === 'none') {
             railPanel.style.border = '1px solid rgba(127,127,127,.3)';
             railPanel.style.borderRadius = '10px';
         }

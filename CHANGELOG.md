@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fix: the settings card was added to the rail but stayed hidden, because it copied a conditional `hidden` class from claude.ai's card wrapper. It now copies the visible card (`[data-rail-section]`) and never hiding classes.
 - The settings card finds the session rail in more layouts (cards built as list items, deeper nesting), and the `Ctrl+Alt+Shift+D` report now says whether the rail was found and why not.
 - Settings card in the Claude Code session rail (`Ctrl+Alt+Shift+S` elsewhere): RTL on/off, line height, Persian text size, lists and tables, full-layout mirroring, font on/off and name, and Persian letters inside code. Applied live and saved in `localStorage`.
 - Persian letters in code blocks now use the chosen font instead of a system fallback (can be turned off).
