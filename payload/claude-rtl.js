@@ -589,7 +589,11 @@
         Array.prototype.slice.call(trigger.children).forEach(function (c, i) { if (i > 1 && c !== grab) c.remove(); });
         Array.prototype.slice.call(head.children).forEach(function (c) { if (!c.contains(trigger) && c !== grip) c.remove(); });
         trigger.firstElementChild.textContent = T.title;
-        card.classList.remove('bg-page');
+        // Each wrapper carries its card's own show rule (Changes: "hidden
+        // has-[nav:not(:empty)]:flex"); ours is always drawn.
+        card.className = card.className.split(/\s+/).filter(function (c) {
+            return c && !/^(hidden|contents|bg-page|has-\[.*\]:flex)$/.test(c);
+        }).concat('flex').join(' ');
         card.style.cssText = '';
         card.setAttribute('data-crtl', 'rail');
         card.setAttribute('dir', 'rtl');
