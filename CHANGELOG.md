@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.2.0 - 2026-10-21
 
 - The *RTL & font* rail card is now built like the rail's own cards: same frame, header, caret and grip.
 - Drag it by its grip (or focus the grip and press `↑` / `↓`) to move it among the other cards. Its place is saved and survives other cards being moved, hidden or shown.

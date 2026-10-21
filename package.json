@@ -1,6 +1,6 @@
 {
   "name": "claude-rtl",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "Persian/Arabic right-to-left support and the Vazirmatn font for the Claude desktop app on Windows",
   "license": "MIT",
