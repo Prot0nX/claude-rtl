@@ -16,7 +16,7 @@ Out of the box, Claude's desktop app shows Persian mixed with English poorly: li
 - **Lists and tables.** Persian lists have their bullets on the right; Persian tables put their first column on the right.
 - **Sidebar.** Persian session titles are right-aligned, and the row icons and `⋯` menu stay where they are.
 - **Code and math stay LTR**, always.
-- **Settings panel.** A *RTL & font* card in the Claude Code session rail (under Environment, Context, Connectors, Changes) changes things live: RTL on/off, line height, Persian text size, lists and tables, full-layout mirroring, the font and its name, and Persian letters inside code. Press **`Ctrl+Alt+Shift+S`** to open it anywhere else.
+- **Settings panel.** A *RTL & font* card in the Claude Code session rail, built like the rail's own cards (drag it by its grip, show or hide it from the rail's right-click *Show* menu), changes things live: RTL on/off, line height, Persian text size, lists and tables, full-layout mirroring, the font and its name, and Persian letters inside code. Press **`Ctrl+Alt+Shift+S`** to open it anywhere else.
 - **Re-runnable.** After every Claude update, run it again. Running it twice never stacks changes.
 - **Reversible.** One command (or `uninstall.cmd`) restores the original files.
 
@@ -70,7 +70,13 @@ A Claude update also removes the patch, because it installs a fresh copy.
 
 ## Settings
 
-The settings card appears at the bottom of the session rail in Claude Code. If it is not there (another page, or Claude changed the rail), press **`Ctrl+Alt+Shift+S`** for a floating copy; `Esc` closes it.
+The settings card appears at the bottom of the session rail in Claude Code and behaves like the rail's other cards:
+
+- **Move it:** hover its header and drag the grip, or focus the grip with `Tab` and press `↑` / `↓`. It keeps its place when you move, hide or show other cards.
+- **Hide or show it:** right-click any card's header and toggle *راست‌چین و فونت* under *Show*. *Reset to defaults* there also puts it back at the bottom.
+- **Fold it:** click its title.
+
+If it is not there (another page, it is hidden, or Claude changed the rail), press **`Ctrl+Alt+Shift+S`** for a floating copy; `Esc` closes it.
 
 <p align="center"><img src="docs/settings-panel.png" width="285" alt="The RTL & font settings card in the Claude Code session rail"></p>
 
@@ -113,7 +119,7 @@ What this means for you:
 | `claude.exe does not contain the expected asar hash` | This Claude build stores integrity differently. Nothing was changed. Please [open an issue](../../issues) with your Claude version. |
 | `Claude did not close` | Quit Claude from the system tray, then run again. |
 | Claude doesn't start after patching | Run `uninstall.cmd`, then [open an issue](../../issues). |
-| The settings card is missing from the session rail | Press **`Ctrl+Alt+Shift+S`** for the floating panel. The `Ctrl+Alt+Shift+D` report (below) says whether the rail was found; attach it to an issue. |
+| The settings card is missing from the session rail | Right-click a card's header and check it under *Show*, or press **`Ctrl+Alt+Shift+S`** for the floating panel. The `Ctrl+Alt+Shift+D` report (below) lists the rail's cards and says whether ours is hidden; attach it to an issue. |
 | Something looks wrong in the UI | Press **`Ctrl+Alt+Shift+D`** in Claude. It copies a JSON report of the Persian UI elements (structure, styles, which `dir` came from Claude vs. this patch) to the clipboard. Attach it to an issue with a screenshot. *The report contains the text of those elements, e.g. session titles; review it before posting.* |
 
 ## Development
