@@ -40,7 +40,10 @@
     var FONT_NAME = /^[A-Za-z0-9 -]{1,64}$/;
     var DEFAULTS = {
         rtl: true, lineHeight: 1.9, textScale: 100, lists: true, mirror: MODE === 'full',
-        font: true, fontName: FONT, codeFont: true, collapsed: false
+        font: true, fontName: FONT, codeFont: true,
+        // The rail card: folded, hidden from the rail's Show menu, and the ids of
+        // the cards that follow it (empty: last).
+        collapsed: false, railHidden: false, railAt: ''
     };
     var LIMITS = { lineHeight: [1.2, 2.6], textScale: [80, 140] };
 
@@ -158,13 +161,11 @@
     }
 
     // The settings panel. Colors come from the surrounding UI (currentColor and
-    // translucent grays), so it fits both the light and the dark theme.
+    // translucent grays), so it fits both the light and the dark theme. The rail
+    // card's frame and header use the app's own classes (copied from its cards).
     var PANEL_CSS = [
-        '[data-crtl]{font-size:13px;line-height:1.5;text-align:right;box-sizing:border-box}',
-        '[data-crtl] .crtl-head{display:flex;align-items:center;gap:6px;font-weight:600;cursor:pointer;user-select:none}',
-        '[data-crtl] .crtl-head svg{opacity:.7;transition:transform .15s}',
-        '[data-crtl][data-collapsed] .crtl-head svg{transform:rotate(90deg)}',
-        '[data-crtl][data-collapsed] .crtl-body{display:none}',
+        '[data-crtl] .crtl-body,[data-crtl="float"]{font-size:13px;line-height:1.5;text-align:right;box-sizing:border-box}',
+        '[data-crtl] .crtl-head{display:flex;align-items:center;justify-content:space-between;gap:6px;font-weight:600}',
         '[data-crtl] .crtl-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;cursor:pointer}',
         '[data-crtl] .crtl-row[data-off]{opacity:.4;pointer-events:none}',
         '[data-crtl] .crtl-ctl{display:flex;align-items:center;gap:6px;direction:ltr}',
@@ -182,7 +183,7 @@
         '[data-crtl] .crtl-btn:hover{background:rgba(127,127,127,.15)}',
         '[data-crtl] .crtl-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px}',
         '[data-crtl] .crtl-hint{opacity:.5;font-size:11px;direction:ltr}',
-        '[data-crtl] .crtl-x{margin-right:auto;background:none;border:0;color:inherit;font-size:18px;line-height:1;cursor:pointer;opacity:.6;padding:0 2px}',
+        '[data-crtl] .crtl-x{background:none;border:0;color:inherit;font-size:18px;line-height:1;cursor:pointer;opacity:.6;padding:0 2px}',
         '[data-crtl="float"]{position:fixed;top:56px;right:16px;width:300px;max-width:calc(100vw - 32px);z-index:2147483646;' +
             'padding:14px;border-radius:12px;border:1px solid rgba(127,127,127,.35);box-shadow:0 8px 30px rgba(0,0,0,.35)}'
     ];
@@ -398,31 +399,34 @@
         else clearDir(document.documentElement);
     }
 
-    function setSetting(key, value) {
+    function setSettings(patch) {
         var prev = S, next = {};
-        Object.keys(S).forEach(function (k) { next[k] = S[k]; });
-        next[key] = value;
+        Object.keys(S).forEach(function (k) { next[k] = k in patch ? patch[k] : S[k]; });
         S = cleanSettings(next);
         saveSettings();
         applySettings(prev);
         syncPanels();
     }
 
+    function setSetting(key, value) {
+        var patch = {};
+        patch[key] = value;
+        setSettings(patch);
+    }
+
+    // Back to the defaults, except where the rail card sits and whether it is
+    // shown or folded.
     function resetSettings() {
-        var prev = S, collapsed = S.collapsed;
-        S = cleanSettings({});
-        S.collapsed = collapsed;
-        saveSettings();
-        applySettings(prev);
-        syncPanels();
+        var patch = cleanSettings({});
+        delete patch.collapsed;
+        delete patch.railHidden;
+        delete patch.railAt;
+        setSettings(patch);
     }
 
     // --- settings panel ---
-    // Mounted as one more card in the Claude Code session rail (Environment,
-    // Context, Connectors, Changes). The rail has no stable ids, so it is found by
-    // its section titles: the closest element holding at least two of them is the
-    // rail, and our card copies the look of its last card. When no rail is on
-    // screen, Ctrl+Alt+Shift+S opens the same panel as a floating box.
+    // The same rows live in two places: a card in the Claude Code session rail
+    // (next section), and a floating box that Ctrl+Alt+Shift+S opens anywhere.
 
     var T = {
         title: '\u0631\u0627\u0633\u062a\u200c\u0686\u06cc\u0646 \u0648 \u0641\u0648\u0646\u062a',
@@ -435,13 +439,12 @@
         fontName: '\u0646\u0627\u0645 \u0641\u0648\u0646\u062a',
         codeFont: '\u062d\u0631\u0648\u0641 \u0641\u0627\u0631\u0633\u06cc \u062f\u0627\u062e\u0644 \u06a9\u062f \u0628\u0627 \u0627\u06cc\u0646 \u0641\u0648\u0646\u062a',
         reset: '\u0628\u0627\u0632\u0646\u0634\u0627\u0646\u06cc',
-        close: '\u0628\u0633\u062a\u0646'
+        close: '\u0628\u0633\u062a\u0646',
+        move: '\u062c\u0627\u0628\u0647\u200c\u062c\u0627\u06cc\u06cc'
     };
     var FONT_CHOICES = ['Vazirmatn', 'Sahel', 'Shabnam', 'Samim', 'Tanha', 'Estedad', 'Parastoo', 'Tahoma', 'Segoe UI'];
-    var RAIL_TITLES = ['Environment', 'Context', 'Connectors', 'Changes'];
-    var SVG_NS = 'http://www.w3.org/2000/svg';
 
-    var railPanel = null, floatPanel = null, lastScan = 0, scanTimer = null;
+    var railPanel = null, floatPanel = null, dragging = false, nativeGrab = '', menuWanted = 0;
 
     // DOM helpers only (no innerHTML: claude.ai may enforce Trusted Types).
     function node(tag, cls, text) {
@@ -451,42 +454,9 @@
         return e;
     }
 
-    function chevron() {
-        var svg = document.createElementNS(SVG_NS, 'svg'), p = document.createElementNS(SVG_NS, 'path');
-        svg.setAttribute('width', '12');
-        svg.setAttribute('height', '12');
-        svg.setAttribute('viewBox', '0 0 16 16');
-        svg.setAttribute('fill', 'none');
-        svg.setAttribute('stroke', 'currentColor');
-        svg.setAttribute('stroke-width', '1.8');
-        p.setAttribute('d', 'M4 6l4 4 4-4');
-        svg.appendChild(p);
-        return svg;
-    }
-
-    function buildPanel(floating) {
-        var root = node('div', 'crtl-card');
-        root.setAttribute('data-crtl', floating ? 'float' : 'rail');
-        root.setAttribute('dir', 'rtl');
-        var head = node('div', 'crtl-head'), body = node('div', 'crtl-body'), syncers = [];
-        head.appendChild(node('span', '', T.title));
-        if (floating) {
-            var x = node('button', 'crtl-x', '\u00d7');
-            x.type = 'button';
-            x.title = T.close;
-            x.addEventListener('click', function () { root.remove(); });
-            head.appendChild(x);
-        } else {
-            head.setAttribute('role', 'button');
-            head.tabIndex = 0;
-            head.appendChild(chevron());
-            head.addEventListener('click', function () { setSetting('collapsed', !S.collapsed); });
-            head.addEventListener('keydown', function (e) {
-                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSetting('collapsed', !S.collapsed); }
-            });
-        }
-        root.appendChild(head);
-        root.appendChild(body);
+    // The settings rows. name keeps each panel's font list id unique.
+    function buildBody(name) {
+        var body = node('div', 'crtl-body'), syncers = [];
 
         // A row is a <label>, so clicking its text toggles / focuses the control.
         // dep: the switch this row depends on; the row is dimmed while it is off.
@@ -522,7 +492,7 @@
 
         function fontInput() {
             var input = node('input', 'crtl-text'), list = node('datalist'), timer = null;
-            list.id = 'crtl-fonts-' + (floating ? 'float' : 'rail');
+            list.id = 'crtl-fonts-' + name;
             FONT_CHOICES.forEach(function (f) { var o = node('option'); o.value = f; list.appendChild(o); });
             input.type = 'text';
             input.spellcheck = false;
@@ -558,112 +528,301 @@
         foot.appendChild(reset);
         body.appendChild(foot);
 
+        body.crtlSync = function () { syncers.forEach(function (f) { f(); }); };
+        body.crtlSync();
+        return body;
+    }
+
+    function buildFloat() {
+        var root = node('div'), head = node('div', 'crtl-head'), x = node('button', 'crtl-x', '\u00d7'), body = buildBody('float');
+        root.setAttribute('data-crtl', 'float');
+        root.setAttribute('dir', 'rtl');
+        x.type = 'button';
+        x.title = T.close;
+        x.addEventListener('click', function () { root.remove(); });
+        head.appendChild(node('span', '', T.title));
+        head.appendChild(x);
+        root.appendChild(head);
+        root.appendChild(body);
         // Keys typed in the panel are ours, not the app's shortcuts.
         root.addEventListener('keydown', function (e) {
-            if (floating && e.key === 'Escape') root.remove();
+            if (e.key === 'Escape') root.remove();
             e.stopPropagation();
         });
-
-        root.crtlSync = function () {
-            syncers.forEach(function (f) { f(); });
-            root.toggleAttribute('data-collapsed', !floating && S.collapsed);
-        };
-        root.crtlSync();
+        root.crtlSync = body.crtlSync;
         return root;
     }
 
     function syncPanels() {
+        mountRailPanel();
         [railPanel, floatPanel].forEach(function (p) { if (p && p.isConnected) p.crtlSync(); });
     }
 
-    // Text elements that read exactly like a rail section title. Titles inside
-    // paragraphs, code or the editor do not count. (Rail cards may be list items,
-    // so li is not excluded; needing 3 titles in one narrow box keeps chat out.)
-    function railTitleHits() {
-        var hits = [], w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-        for (var t = w.nextNode(); t && hits.length < 40; t = w.nextNode()) {
-            var v = t.nodeValue;
-            if (v.length > 24) continue;
-            v = v.trim();
-            if (RAIL_TITLES.indexOf(v) < 0) continue;
-            var p = t.parentElement;
-            if (!p || p.closest('p,pre,code,[data-crtl],' + EDITOR)) continue;
-            hits.push({ el: p, title: v });
-        }
-        return hits;
+    // --- rail card ---
+    // claude.ai draws each rail card as div[data-rail-card=<id>] holding a
+    // section[data-rail-section] whose header has the title button, caret, grab
+    // zone and grip, and sorts the cards with dnd-kit. Ours is a copy of one of
+    // them (frame and header, no content, no React state), so it looks and sits
+    // like them. Its grip moves it among them (pointer or arrow keys), and
+    // S.railAt keeps the ids of the cards that follow it.
+
+    // React ids and open / menu / drag state, which a copy must not carry.
+    var STATE_ATTR = /^(id|aria-(controls|labelledby|describedby|expanded|pressed|busy)|data-(rail-card|rail-menu-open|rail-slot-off|panel-open|popup-open|open|closed|highlighted|starting-style|ending-style))$/;
+
+    function copyEl(el, deep) {
+        var c = el.cloneNode(deep);
+        [c].concat(Array.prototype.slice.call(c.querySelectorAll('*'))).forEach(function (e) {
+            Array.prototype.slice.call(e.attributes).forEach(function (a) {
+                if (STATE_ATTR.test(a.name)) e.removeAttribute(a.name);
+            });
+        });
+        return c;
     }
 
-    // The rail: the deepest element holding the most distinct section titles (3+).
-    function findRail() {
-        var hits = railTitleHits(), seen = new Map(), best = null;
-        hits.forEach(function (h) {
-            var a = h.el.parentElement;
-            for (var depth = 1; a && a !== document.body && depth <= 16; depth++, a = a.parentElement) {
-                var e = seen.get(a);
-                if (!e) seen.set(a, e = { el: a, titles: {}, count: 0, depth: depth });
-                if (!e.titles[h.title]) { e.titles[h.title] = 1; e.count++; }
+    function buildRailCard(src) {
+        var srcSection = src.querySelector('[data-rail-section]');
+        var card = copyEl(src, false), section = copyEl(srcSection, false), head = copyEl(srcSection.firstElementChild, true);
+        var trigger = head.querySelector('button'), caret = trigger.children[1];
+        var grab = head.querySelector('[data-rail-grab]'), grip = head.querySelector('[data-rail-grip]');
+        var body = buildBody('rail');
+        // Keep the title, caret and drag handles; drop the source card's summary and buttons.
+        Array.prototype.slice.call(trigger.children).forEach(function (c, i) { if (i > 1 && c !== grab) c.remove(); });
+        Array.prototype.slice.call(head.children).forEach(function (c) { if (!c.contains(trigger) && c !== grip) c.remove(); });
+        trigger.firstElementChild.textContent = T.title;
+        card.classList.remove('bg-page');
+        card.style.cssText = '';
+        card.setAttribute('data-crtl', 'rail');
+        card.setAttribute('dir', 'rtl');
+        section.setAttribute('aria-label', T.title);
+        // Rows start where the title starts.
+        body.style.paddingInline = getComputedStyle(srcSection.querySelector('button')).paddingInlineStart;
+        section.appendChild(head);
+        section.appendChild(body);
+        card.appendChild(section);
+
+        trigger.addEventListener('click', function () { setSetting('collapsed', !S.collapsed); });
+        if (grab) grab.addEventListener('pointerdown', drag);
+        if (grip) {
+            grip.setAttribute('aria-label', T.move + ' ' + T.title);
+            grip.addEventListener('keydown', function (e) {
+                var up = e.key === 'ArrowUp', nb = (up || e.key === 'ArrowDown') && neighbor(card, up);
+                if (!nb) return;
+                e.preventDefault();
+                hop(card, nb, up);
+                grip.focus();
+                saveRailAt();
+            });
+        }
+        // Keys typed in the card are ours, not the app's shortcuts.
+        card.addEventListener('keydown', function (e) { e.stopPropagation(); });
+
+        card.crtlSync = function () {
+            body.crtlSync();
+            body.hidden = S.collapsed;
+            trigger.setAttribute('aria-expanded', String(!S.collapsed));
+            // The caret (CaretRight) points down when open and left when folded.
+            // Inline, because the app negates icon rotation under dir=rtl and
+            // mirrors icons when the whole page is RTL.
+            if (caret) {
+                caret.style.rotate = S.collapsed ? '180deg' : '90deg';
+                caret.style.transform = 'none';
             }
-        });
-        seen.forEach(function (e) {
-            if (e.count < 3) return;
-            if (!best || e.count > best.count || (e.count === best.count && e.depth < best.depth)) best = e;
-        });
-        if (!best || best.el.getBoundingClientRect().width > 720) return null;
-        // The rail's last child that holds a title: the card whose look we copy.
-        for (var c = best.el.lastElementChild; c; c = c.previousElementSibling) {
-            if (c.hasAttribute('data-crtl')) continue;
-            for (var i = 0; i < hits.length; i++) if (c.contains(hits[i].el)) return { rail: best.el, card: c };
+        };
+        return card;
+    }
+
+    // The nearest native card above / below that is drawn (an empty slot is
+    // display:contents, 0 high).
+    function neighbor(card, up) {
+        for (var c = card; (c = up ? c.previousElementSibling : c.nextElementSibling);) {
+            if (c.hasAttribute('data-rail-card') && c.offsetHeight) return c;
         }
         return null;
     }
 
-    // The first element in el (or el itself) that is actually drawn as a box.
-    function visibleBox(el) {
-        var all = [el].concat(Array.prototype.slice.call(el.querySelectorAll('*'), 0, 30));
-        for (var i = 0; i < all.length; i++) {
-            var d = getComputedStyle(all[i]).display;
-            if (d !== 'none' && d !== 'contents' && all[i].getBoundingClientRect().height > 0) return all[i];
-        }
-        return null;
+    // Moves the card past nb, which slides into its new place like the app's own
+    // drop animation. Only ours moves, so React's cards keep their order.
+    // Returns how far the card's slot moved.
+    function hop(card, nb, up) {
+        var top = card.offsetTop, nbTop = nb.offsetTop;
+        if (up) nb.before(card); else nb.after(card);
+        if (nb.animate) nb.animate([{ transform: 'translateY(' + (nbTop - nb.offsetTop) + 'px)' }, { transform: 'none' }], { duration: 200, easing: 'ease' });
+        return card.offsetTop - top;
     }
 
+    // Pointer drag from the grab zone, started after 6px like the app's own:
+    // the card follows the pointer and hops past a neighbor whose middle it crosses.
+    function drag(e) {
+        if (e.button !== 0) return;
+        e.preventDefault(); // no text selection
+        var card = railPanel, y0 = e.clientY, dy = 0;
+        function move(ev) {
+            dy = ev.clientY - y0;
+            if (!dragging) {
+                if (Math.abs(dy) < 6) return;
+                dragging = true;
+                card.classList.add('bg-page');
+                card.style.zIndex = '1';
+            }
+            for (var up = dy < 0, nb; (nb = neighbor(card, up));) {
+                var mid = nb.offsetTop + nb.offsetHeight / 2;
+                if (up ? card.offsetTop + dy > mid : card.offsetTop + card.offsetHeight + dy < mid) break;
+                var d = hop(card, nb, up);
+                y0 += d;
+                dy -= d;
+            }
+            card.style.transform = 'translateY(' + dy + 'px)';
+        }
+        function end() {
+            document.removeEventListener('pointermove', move);
+            document.removeEventListener('pointerup', end);
+            document.removeEventListener('pointercancel', end);
+            if (!dragging) return;
+            dragging = false;
+            card.classList.remove('bg-page');
+            card.style.zIndex = card.style.transform = '';
+            if (card.animate) card.animate([{ transform: 'translateY(' + dy + 'px)' }, { transform: 'none' }], { duration: 200, easing: 'ease' });
+            saveRailAt();
+            // The release lands on the header button: that click must not fold the card.
+            window.addEventListener('click', swallow, true);
+            setTimeout(function () { window.removeEventListener('click', swallow, true); }, 0);
+        }
+        document.addEventListener('pointermove', move);
+        document.addEventListener('pointerup', end);
+        document.addEventListener('pointercancel', end);
+    }
+
+    function swallow(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    // Remembers which cards follow ours. Cards not on screen (hidden, or not
+    // rendered yet) keep what was remembered for them.
+    function saveRailAt() {
+        var after = S.railAt ? S.railAt.split(',') : [];
+        Array.prototype.forEach.call(railPanel.parentElement.querySelectorAll(':scope > [data-rail-card]'), function (c) {
+            var id = c.getAttribute('data-rail-card'), i = after.indexOf(id);
+            var follows = !!(railPanel.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING);
+            if (follows && i < 0) after.push(id);
+            else if (!follows && i >= 0) after.splice(i, 1);
+        });
+        if (after.join(',') !== S.railAt) setSetting('railAt', after.join(','));
+    }
+
+    // Ours goes into the slot that keeps the most remembered "follows ours"
+    // pairs, ignoring the card the user last grabbed (its old side says nothing
+    // once it moved). So other cards moving, hiding or appearing never drag ours
+    // along; on a tie it stays put.
+    function placeRailCard(cards) {
+        var after = S.railAt ? S.railAt.split(',') : [], score = 0, scores;
+        function side(c) {
+            var id = c.getAttribute('data-rail-card');
+            return id === nativeGrab ? 0 : after.indexOf(id) >= 0 ? 1 : -1;
+        }
+        cards.forEach(function (c) { if (side(c) > 0) score++; });
+        scores = [score].concat(cards.map(function (c) { return score -= side(c); }));
+        var best = Math.max.apply(null, scores), at = scores.indexOf(best);
+        var cur = railPanel.parentElement === cards[0].parentElement ? cards.filter(function (c) {
+            return c.compareDocumentPosition(railPanel) & Node.DOCUMENT_POSITION_FOLLOWING;
+        }).length : -1;
+        if (scores[cur] === best) at = cur;
+        var next = cards[at], last = cards[cards.length - 1];
+        if (next) { if (railPanel.nextElementSibling !== next) next.before(railPanel); }
+        else if (last.nextElementSibling !== railPanel) last.after(railPanel);
+    }
+
+    // Cheap enough for every mutation burst: no rail on screen is one query.
     function mountRailPanel() {
-        if (railPanel && railPanel.isConnected) return;
-        var wait = 1500 - (Date.now() - lastScan);
-        if (wait > 0) {
-            if (!scanTimer) scanTimer = setTimeout(function () { scanTimer = null; mountRailPanel(); }, wait);
+        if (dragging || !document.body) return;
+        var cards = Array.prototype.slice.call(document.querySelectorAll('[data-rail-card]'));
+        // Only the first rail (a split view shows one per session).
+        cards = cards.filter(function (c) { return c.parentElement === cards[0].parentElement; });
+        if (S.railHidden || !cards.length) {
+            if (railPanel) railPanel.remove();
             return;
         }
-        lastScan = Date.now();
-        if (!document.body) return;
-        var found = findRail();
-        if (!found) return;
-        railPanel = railPanel || buildPanel(false);
-        // The visible card: claude.ai wraps each one in a display:contents (or
-        // conditionally hidden) div, and draws the card on the section inside.
-        var look = found.card.matches('[data-rail-section]') ? found.card :
-            found.card.querySelector('[data-rail-section]') || visibleBox(found.card) || found.card;
-        // Never copy classes that hide or flatten the box.
-        var cls = (typeof look.className === 'string' ? look.className : '').split(/\s+/).filter(function (c) {
-            return c && !/^(hidden|contents|invisible|sr-only|collapse)$/.test(c);
-        }).join(' ');
-        railPanel.className = (cls + ' crtl-card').trim();
-        railPanel.style.cssText = '';
-        found.rail.appendChild(railPanel);
-        // Still invisible (a conditional class we cannot know): drop the copied look.
-        if (getComputedStyle(railPanel).display === 'none') railPanel.className = 'crtl-card';
-        // Cards whose padding / border live elsewhere: give ours its own.
-        var cs = getComputedStyle(railPanel);
-        if (parseFloat(cs.paddingTop) < 4) { railPanel.style.paddingTop = '12px'; railPanel.style.paddingBottom = '12px'; }
-        if (parseFloat(cs.paddingLeft) < 4) { railPanel.style.paddingLeft = '12px'; railPanel.style.paddingRight = '12px'; }
-        if (cs.borderTopStyle === 'none' && cs.boxShadow === 'none') {
-            railPanel.style.border = '1px solid rgba(127,127,127,.3)';
-            railPanel.style.borderRadius = '10px';
+        if (!railPanel) {
+            var src = cards.filter(function (c) { return c.querySelector('[data-rail-section] button'); }).pop();
+            if (!src) return;
+            railPanel = buildRailCard(src);
         }
-        railPanel.crtlSync();
+        var fresh = !railPanel.isConnected;
+        placeRailCard(cards);
+        saveRailAt();
+        if (fresh) railPanel.crtlSync();
     }
 
-    // Ctrl+Alt+Shift+S: show the rail card (expanded), or else a floating panel.
+    // --- the rail's Show menu ---
+    // Right-clicking a rail card's header opens a menu whose "Show" group has a
+    // checkbox per card. Ours gets a copy of a checked one; Base UI does not know
+    // the copy, so its toggle, highlight and arrow keys are handled here. The
+    // menu's last plain item ("Reset to defaults") also resets our card.
+
+    function addMenuItem() {
+        var menus = document.querySelectorAll('[role="menu"]');
+        for (var i = 0; i < menus.length; i++) {
+            var tpl = menus[i].querySelector('[role="menuitemcheckbox"][aria-checked="true"]');
+            if (!tpl || menus[i].querySelector('[data-crtl]')) continue;
+            menuWanted = 0;
+            buildMenuItem(menus[i], tpl);
+            return;
+        }
+    }
+
+    function buildMenuItem(menu, tpl) {
+        var item = copyEl(tpl, true), on = item.querySelector('[data-checked]'), off = on.cloneNode(false), last = tpl;
+        // Unchecked look: the app's checkbox classes without the checked fill.
+        off.removeAttribute('data-checked');
+        off.setAttribute('data-unchecked', '');
+        off.classList.remove('bg-fill-accent', 'border-transparent');
+        off.classList.add('border-strong', 'bg-transparent');
+        var w = document.createTreeWalker(item, NodeFilter.SHOW_TEXT);
+        for (var t = w.nextNode(); t; t = w.nextNode()) {
+            if (t.nodeValue.trim() && !on.contains(t)) { t.nodeValue = T.title; break; }
+        }
+        item.setAttribute('data-crtl', 'menu');
+
+        function sync() {
+            var shown = !S.railHidden;
+            item.setAttribute('aria-checked', String(shown));
+            item.toggleAttribute('data-checked', shown);
+            item.toggleAttribute('data-unchecked', !shown);
+            (shown ? off : on).replaceWith(shown ? on : off);
+        }
+        function toggle(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            setSetting('railHidden', !S.railHidden);
+            sync();
+        }
+        item.addEventListener('click', toggle);
+        item.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') toggle(e); });
+        item.addEventListener('pointerenter', function () { item.focus(); });
+        item.addEventListener('focus', function () { item.setAttribute('data-highlighted', ''); });
+        item.addEventListener('blur', function () { item.removeAttribute('data-highlighted'); });
+        // Arrow keys: Base UI steps over the copy, so step onto and off it here.
+        menu.addEventListener('keydown', function (e) {
+            var down = e.key === 'ArrowDown';
+            if (!down && e.key !== 'ArrowUp') return;
+            var list = Array.prototype.slice.call(menu.querySelectorAll('[role^="menuitem"]:not([aria-disabled="true"])'));
+            var i = list.indexOf(document.activeElement), to = list[i + (down ? 1 : -1)];
+            if (i < 0 || !to || (list[i] !== item && to !== item)) return;
+            e.preventDefault();
+            e.stopPropagation();
+            to.focus();
+        }, true);
+
+        var plain = menu.querySelectorAll('[role="menuitem"]'), reset = plain[plain.length - 1];
+        if (reset && tpl.compareDocumentPosition(reset) & Node.DOCUMENT_POSITION_FOLLOWING) {
+            reset.addEventListener('click', function () { setSettings({ collapsed: false, railHidden: false, railAt: '' }); });
+        }
+        while (last.nextElementSibling && last.nextElementSibling.getAttribute('role') === 'menuitemcheckbox') last = last.nextElementSibling;
+        last.after(item);
+        sync();
+    }
+
+    // Ctrl+Alt+Shift+S: show the rail card (unfolded), or else the floating panel.
     function openPanel() {
         if (railPanel && railPanel.isConnected) {
             if (S.collapsed) setSetting('collapsed', false);
@@ -671,7 +830,7 @@
             return;
         }
         if (floatPanel && floatPanel.isConnected) { floatPanel.remove(); return; }
-        floatPanel = floatPanel || buildPanel(true);
+        floatPanel = floatPanel || buildFloat();
         var cs = getComputedStyle(document.body), bg = cs.backgroundColor;
         floatPanel.style.background = /^(transparent|rgba\(0, 0, 0, 0\))$/.test(bg) ? '#262624' : bg;
         floatPanel.style.color = cs.color;
@@ -715,19 +874,13 @@
         };
     }
 
-    // Why the settings card is (not) in the rail: each title found, with its ancestors.
+    // Why the settings card is (not) in the rail: the rail's cards, in order.
     function railReport() {
-        var found = findRail();
         return {
             mounted: !!(railPanel && railPanel.isConnected),
-            found: found ? sig(found.rail) + ' w=' + Math.round(found.rail.getBoundingClientRect().width) : null,
-            titles: railTitleHits().map(function (h) {
-                var chain = [];
-                for (var a = h.el, i = 0; a && a !== document.body && i < 16; a = a.parentElement, i++) {
-                    chain.push(a.tagName + (a.getAttribute('role') ? '[' + a.getAttribute('role') + ']' : '') +
-                        ' w=' + Math.round(a.getBoundingClientRect().width));
-                }
-                return h.title + ': ' + chain.join(' < ');
+            hidden: S.railHidden,
+            cards: Array.prototype.map.call(document.querySelectorAll('[data-rail-card]'), function (c) {
+                return c.getAttribute('data-rail-card') + (c.querySelector('[data-rail-section]') ? '' : ' (empty)');
             })
         };
     }
@@ -740,7 +893,7 @@
             settings: S, rail: rail, items: els.map(describe) }, null, 1);
         function done() {
             toast('claude-rtl: report copied (' + els.length + ' items, rail ' +
-                (rail.mounted ? 'card shown' : rail.found ? 'found' : 'not found, ' + rail.titles.length + ' titles') + ')');
+                (rail.mounted ? 'card shown' : rail.hidden ? 'card hidden' : rail.cards.length ? 'found' : 'not found') + ')');
         }
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(report).then(done, function () { fallbackCopy(report); done(); });
@@ -761,6 +914,17 @@
         if (!(e.ctrlKey && e.altKey && e.shiftKey)) return;
         if (e.code === 'KeyD') { e.preventDefault(); dump(); }
         if (e.code === 'KeyS') { e.preventDefault(); openPanel(); }
+    }, true);
+
+    // The rail card the user is about to drag (cleared by any other press).
+    document.addEventListener('pointerdown', function (e) {
+        var c = e.target.closest && e.target.closest('[data-rail-grab]');
+        nativeGrab = c && c.closest('[data-rail-card]') ? c.closest('[data-rail-card]').getAttribute('data-rail-card') : '';
+    }, true);
+
+    // A right-click on a rail card's header (not ours) is about to open the Show menu.
+    document.addEventListener('contextmenu', function (e) {
+        if (e.target.closest && e.target.closest('[data-rail-card] [data-rail-section] > :first-child')) menuWanted = Date.now();
     }, true);
 
     function init() {
@@ -787,6 +951,8 @@
             if (list) roots.add(list);
         }
         new MutationObserver(function (muts) {
+            // The Show menu is mounting: add our checkbox before it is painted.
+            if (menuWanted && Date.now() - menuWanted < 1000) addMenuItem();
             for (var i = 0; i < muts.length; i++) {
                 var m = muts[i];
                 if (m.type === 'characterData') add(m.target.parentElement);

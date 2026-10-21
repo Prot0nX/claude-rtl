@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- The *RTL & font* rail card is now built like the rail's own cards: same frame, header, caret and grip.
+- Drag it by its grip (or focus the grip and press `↑` / `↓`) to move it among the other cards. Its place is saved and survives other cards being moved, hidden or shown.
+- It has its own checkbox in the rail's right-click *Show* menu, and *Reset to defaults* there resets it too.
+- The rail is found by the app's card markup instead of by scanning page text for English section titles: cheaper on every page update, and it works in every app language.
+- The `Ctrl+Alt+Shift+D` report lists the rail's cards and whether ours is hidden.
+
 ## 1.1.0 - 2026-10-19
 
 <img src="https://raw.githubusercontent.com/Prot0nX/claude-rtl/main/docs/settings-panel.png" width="285" alt="Settings card">
